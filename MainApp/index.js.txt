@@ -1,0 +1,48 @@
+import React from 'react';
+import ReactDOM from 'react-dom';
+import { Provider } from 'react-redux';
+import { ConnectedRouter } from 'react-router-redux';
+
+import { Route, Link, BrowserRouter as Router } from 'react-router-dom';
+import App from './App';
+import Invoice from './Invoice';
+import Dashboard from '../DashboardApp';
+import Overview from '../OverviewApp';
+import Calendar from '../CalendarApp';
+import SettingApp from '../SettingsApp';
+import Report from '../ReportApp';
+import Patient from '../PatientApp';
+import ProfileApp from '../ProfilesApp';
+import { PracticeApp } from '../PracticesApp';
+
+import configureStore, { history } from './store';
+import RootSaga from './sagas';
+
+const MainApp = (rootElem) => {
+	const store = configureStore();
+	store.runSaga(RootSaga);
+	console.log(history);
+	ReactDOM.render(
+		<Provider store={store}>
+			<ConnectedRouter history={history}>
+				<App>
+					<Route exact path="/" component={Dashboard} />
+					<Route path="/invoice" component={Invoice} />
+					<Route path="/patients/:slug" component={Patient} />
+					<Route path="/overview" component={Overview} />
+					<Route path="/dashboard" component={Dashboard} />
+					<Route path="/calendar/:visit?" component={Calendar} />
+					<Route path="/settings" component={SettingApp} />
+					<Route path="/reports" component={Report} />
+					<Route path="/profile" component={ProfileApp} />
+					<Route path="/locations" component={PracticeApp} />
+				</App>
+			</ConnectedRouter>
+		</Provider>,
+		rootElem
+	);
+};
+
+export default MainApp;
+
+// ReactDOM.render(routing, document.getElementById('root'));

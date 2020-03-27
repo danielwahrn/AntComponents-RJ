@@ -1,0 +1,33 @@
+/* global gon */
+import { createStore, applyMiddleware }     from "redux"
+import { composeWithDevTools }              from "redux-devtools-extension"
+import { connectRouter, routerMiddleware }  from "connected-react-router"
+import createSagaMiddleware                 from "redux-saga"
+
+import { createBrowserHistory } from "history"
+
+export const history = createBrowserHistory({ basename: `/practice/${gon.practice.id}/calendar` })
+
+export default ({
+  initialState = {},
+  rootReducer,
+  rootSaga
+}) => {
+  const RouterMiddleware  = routerMiddleware(history)
+  const SagaMiddleware    = createSagaMiddleware()
+
+  const store = createStore(
+    connectRouter(history)(rootReducer),
+    initialState,
+    composeWithDevTools(
+      applyMiddleware(
+        RouterMiddleware,
+        SagaMiddleware
+      )
+    )
+  )
+
+  SagaMiddleware.run(rootSaga)
+
+  return store
+}

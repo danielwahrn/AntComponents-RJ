@@ -1,0 +1,40 @@
+import { all, fork } from 'redux-saga/effects';
+
+// Patient Sagas
+import { TagSaga } from 'modules/Tag';
+import { AppointmentReasonSaga } from 'modules/Settings/AppointmentReason';
+import { NoteTemplatesSaga } from 'modules/Settings/NoteTemplates';
+import { CategoriesSaga } from 'modules/Settings/Categories';
+import { CancellationReasonsSaga } from 'modules/Settings/CancellationReason';
+import { CataloguesSaga } from 'modules/Settings/Catalogues';
+import { PriceListsSaga } from 'modules/Settings/PriceLists';
+import { TemplateSaga } from 'modules/Settings/Templates';
+import { PreferenceSaga } from 'modules/Settings/Preferences';
+import { PracticeProfessionalsSaga } from 'modules/Settings/PracticeProfessionals';
+import { PracticeProfessionalDetailSaga } from 'modules/Settings/PracticeProfessionalDetail';
+import { AlertsSaga } from 'modules/Settings/Alerts';
+import { RecallsSaga } from 'modules/Settings/Recalls';
+import { InvoiceSaga } from 'modules/Settings/Invoices';
+import { PolicySettingSaga } from 'modules/Settings/PolicySettings';
+import { ProfileSaga } from 'modules/Profile';
+import { PracticeSaga } from 'apps/PracticesApp';
+
+export default function* RootSaga() {
+	yield all([ fork(TagSaga) ]);
+	yield all([ fork(AppointmentReasonSaga) ]);
+	yield all([ fork(NoteTemplatesSaga) ]);
+	yield all([ fork(CategoriesSaga) ]);
+	yield all([ fork(CancellationReasonsSaga) ]);
+	yield all([ fork(CataloguesSaga) ]);
+	yield all([ fork(PriceListsSaga) ]);
+	yield all([ fork(TemplateSaga) ]);
+	yield all([ fork(PreferenceSaga) ]);
+	yield all([ fork(PracticeProfessionalsSaga) ]);
+	yield all([ fork(PracticeProfessionalDetailSaga) ]);
+	yield all([ fork(RecallsSaga) ]);
+	yield all([ fork(InvoiceSaga) ]);
+	yield all([ fork(AlertsSaga) ]);
+	yield all([ fork(PolicySettingSaga) ]);
+	yield all([ fork(ProfileSaga) ]);
+	yield all([ fork(PracticeSaga) ]);
+}

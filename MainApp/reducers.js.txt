@@ -1,0 +1,49 @@
+import { combineReducers } from 'redux';
+import { routerReducer } from 'react-router-redux';
+import { reducer as formReducer } from 'redux-form';
+
+import { TagReducer } from 'modules/Tag';
+import { AppointmentReasonReducer } from 'modules/Settings/AppointmentReason';
+import { NoteTemplatesReducer } from 'modules/Settings/NoteTemplates';
+import { CategoriesReducer } from 'modules/Settings/Categories';
+import { CancellationReasonsReducer } from 'modules/Settings/CancellationReason';
+import { CataloguesReducer } from 'modules/Settings/Catalogues';
+import { PriceListsReducer } from 'modules/Settings/PriceLists';
+import { TemplateReducer } from 'modules/Settings/Templates';
+import { PreferenceReducer } from 'modules/Settings/Preferences';
+import { PracticeProfessionalsReducer } from 'modules/Settings/PracticeProfessionals';
+import { PracticeProfessionalDetailReducer } from 'modules/Settings/PracticeProfessionalDetail';
+import { AlertsReducer } from 'modules/Settings/Alerts';
+import { RecallsReducer } from 'modules/Settings/Recalls';
+import { InvoiceReducer } from 'modules/Settings/Invoices';
+import { PolicySettingReducer } from 'modules/Settings/PolicySettings';
+import { ProfileReducer } from 'modules/Profile';
+import { PracticeReducer } from 'apps/PracticesApp';
+
+
+
+
+
+const RootReducer = combineReducers({
+	tags: TagReducer,
+	appointmentReasons: AppointmentReasonReducer,
+	noteTemplates: NoteTemplatesReducer,
+	categories: CategoriesReducer,
+	cancellationReasons: CancellationReasonsReducer,
+	catalogues: CataloguesReducer,
+	priceLists: PriceListsReducer,
+	templates: TemplateReducer,
+	router: routerReducer,
+	preference: PreferenceReducer,
+	practiceProfessionals: PracticeProfessionalsReducer,
+	practiceProfessionalDetail: PracticeProfessionalDetailReducer,
+	alerts: AlertsReducer,
+	recalls: RecallsReducer,
+	invoice: InvoiceReducer,
+	policySetting: PolicySettingReducer,
+	profile: ProfileReducer,
+	practices: PracticeReducer,
+	form: formReducer
+});
+
+export default RootReducer;

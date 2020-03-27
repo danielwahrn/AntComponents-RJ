@@ -1,0 +1,364 @@
+import React from 'react';
+import { connect } from 'react-redux';
+
+import {Row, Col,Card } from 'antd';
+
+import { Grid } from 'react-bootstrap';
+import humps from 'humps';
+
+import api from 'apps/PatientApp/api';
+import { getPatient } from 'modules/Patient/reducers';
+import { getPractice } from 'modules/Practice/reducers';
+import { fetchCatalogueItemsRequest } from 'modules/Practice/actions';
+import { toggleInvoiceAddItemModal }  from 'modules/InvoiceDashboard/actions';
+import InvoiceOverview from './InvoiceOverview';
+import OutstandingInvoices from './OutstandingInvoices';
+import InvoicesStats from './InvoicesStats';
+import PaidInvoices from './PaidInvoices';
+import UninvoicedItems from './UninvoicedItems/UninvoicedItems';
+import NewModal from '../ItemModals/NewModal';
+import ViewModal from '../ItemModals/ViewModal';
+import DeleteItemModal from '../ItemModals/DeleteItemModal';
+import AddCreditModal from './AddCreditModal';
+import AccountCreditHistoryModal from './AccountCreditHistoryModal';
+import { PatientAlertTicker } from 'modules/PatientAlerts';
+import HasRolePermission from 'modules/utils/HasRolePermission';
+
+
+const mapStateToProps = (state) => ({
+	practice: getPractice(state),
+	patient: getPatient(state),
+	isAddItemModalVisible: state.invoice.isAddItemModalVisible
+});
+
+class InvoiceDashboard extends React.Component {
+	state = {
+		invoices: [],
+		uninvoicedItems: [],
+		showAddInvoiceItemModal: false,
+		showViewModal: false,
+		showAddCreditModal: false,
+		currentItem: {},
+		accountCredit: 0,
+		showOutstandingInvoiceLoader: true,
+		showLoader: true
+	};
+
+	async componentDidMount() {
+		this.props.fetchCatalogueItemsRequest();
+		await this.fetchPatientAccountCredit();
+		await this.fetchInvoices();
+		await this.fetchPatientItems();
+	}
+
+	fetchInvoices = async () => {
+		const { practice, patient } = this.props;
+		const { response } = await api.fetchInvoices({ practice, patient });
+
+		if (response) {
+			this.setState({
+				...this.state,
+				invoices: response.result.map((id) => response.entities.invoices[id])
+			});
+		}
+	};
+
+	fetchPatientItems = async () => {
+		const { practice, patient } = this.props;
+		const { response } = await api.fetchPatientRecordItems({ practice, patient });
+
+		if (response) {
+			this.setState({
+				...this.state,
+				showLoader: false,
+				uninvoicedItems: response.result.map((id) => response.entities.patientItems[id])
+			});
+		}
+	};
+
+	fetchPatientAccountCredit = async () => {
+		const { practice, patient } = this.props;
+		const { response } = await api.fetchPatientAccountCredit({ practice, patient });
+
+		if (response) {
+			this.setState({
+				...this.state,
+				accountCredit: response.data.credit,
+				accountCreditHistory: humps.camelizeKeys(response.data.history)
+			});
+		}
+	};
+
+	filterInvoices(filterState) {
+		const { invoices } = this.state;
+		return invoices.filter((invoice) => filterState.includes(invoice.state));
+	}
+
+	onAddItemButtonClick = () => {
+		this.setState({
+			...this.state,
+			showAddInvoiceItemModal: true
+		});
+	};
+
+	handleClose = () => {
+		this.setState({
+			...this.state,
+			showAddInvoiceItemModal: false,
+			showViewModal: false,
+			showDeleteModal: false,
+			showAddCreditModal: false,
+			showViewHistoryModal: false,
+			showViewHistoryModal: false,
+			currentItem: {}
+		});
+		this.props.toggleInvoiceAddItemModal()
+	};
+
+	createInvoice = async (items) => {
+		const { practice, patient } = this.props;
+
+		const { response, errors } = await api.createInvoice({ practice, patient }, { items });
+
+		const removeInvoicedItems = ({ response }) => {
+			// Remove the invoice items from the new invoice
+			const invoice = response.entities.invoices[response.result];
+
+			// Filter out invoice items on the new invoice
+			return this.state.uninvoicedItems.filter(
+				(patientItem) =>
+					!invoice.invoiceItems.map((invoiceItem) => invoiceItem.patientRecordItemId).includes(patientItem.id)
+			);
+		};
+
+		if (response) {
+			this.setState({
+				...this.state,
+				invoices: [ ...this.state.invoices, response.entities.invoices[response.result] ],
+				uninvoicedItems: removeInvoicedItems({ response })
+			});
+		}
+	};
+
+	createPatientRecordItem = async (data) => {
+		const { practice, patient } = this.props;
+		const { response } = await api.createPatientRecordItem({ practice, patient }, data);
+
+		if (response) {
+			this.setState({
+				...this.state,
+				uninvoicedItems: [ ...this.state.uninvoicedItems, response.entities.patientItems[response.result] ]
+			});
+		}
+		this.handleClose();
+	};
+
+	onDropdownViewItem = (id) => {
+		const currentItem = this.state.uninvoicedItems.find((item) => item.id === id);
+		this.setState({
+			...this.state,
+			showViewModal: true,
+			currentItem
+		});
+	};
+
+	onDropdownDeleteItem = (id) => {
+		const currentItem = this.state.uninvoicedItems.find((item) => item.id === id);
+		this.setState({
+			...this.state,
+			showDeleteModal: true,
+			currentItem
+		});
+	};
+
+	handleConfirmAddCredit = async (accountCredit) => {
+		const { practice, patient } = this.props;
+
+		const { response } = await api.addPatientCredit({ practice, patient }, accountCredit);
+
+		if (response) {
+			
+			this.setState({
+				showAddCreditModal: false,
+				accountCredit: response.data.credit,
+				accountCreditHistory: humps.camelizeKeys(response.data.history)
+			});
+			this.handleClose();
+		}
+	};
+
+	handleDeleteItem = async () => {
+		const { practice, patient } = this.props;
+		const { currentItem } = this.state;
+		const { id } = currentItem;
+		const { response } = await api.deletePatienRecordItem({ practice, patient }, id);
+		if (response) {
+			this.setState({
+				uninvoicedItems: response.result.map((id) => response.entities.patientItems[id])
+			});
+			this.handleClose();
+		}
+	};
+
+	handleUpdateItem = async (id, form) => {
+		const { practice, patient } = this.props;
+		const { response } = await api.updatePatientRecordItem({ practice, patient }, form);
+		if (response) {
+			this.setState({
+				uninvoicedItems: response.result.map((id) => response.entities.patientItems[id])
+			});
+			this.handleClose();
+		}
+	};
+
+	onOpenDeleteModal = () => {
+		this.setState({
+			...this.state,
+			showViewModal: false,
+			showDeleteModal: true
+		});
+	};
+
+	onOpenAddCreditModal = () => this.setState({ showAddCreditModal: true });
+	onOpenViewHistoryModal = () => this.setState({ showViewHistoryModal: true });
+
+	render() {
+		console.log('invoicedashboardprops', this.props)
+		const { patient, isAddItemModalVisible, toggleInvoiceAddItemModal } = this.props;
+		const {
+			invoices,
+			uninvoicedItems,
+			showAddInvoiceItemModal,
+			showViewModal,
+			showDeleteModal,
+			showAddCreditModal,
+			showViewHistoryModal,
+			currentItem,
+			accountCredit,
+			accountCreditHistory
+		} = this.state;
+
+		const outstandingInvoices = this.filterInvoices([ 'issued', 'defaulted' ]);
+		const paidInvoices = this.filterInvoices([ 'paid' ]);
+		const {
+			onDropdownViewItem,
+			handleClose,
+			onDropdownDeleteItem,
+			handleDeleteItem,
+			onOpenDeleteModal,
+			handleUpdateItem,
+			onOpenAddCreditModal,
+			onOpenViewHistoryModal,
+			handleConfirmAddCredit
+		} = this;
+
+		return (
+			<div className="l3-main-content patient-profile-invoice">
+				<HasRolePermission feature="Invoice" action="view" outputType="notFound">
+					<div className="app-full-content">
+						<PatientAlertTicker />
+						<div className="">
+							<Row gutter={[24,24]}>
+								<Col span={24} >
+									<InvoiceOverview
+										accountCredit={parseFloat(accountCredit)}
+										uninvoicedItems={uninvoicedItems}
+										invoices={invoices}
+										onAddCredit={onOpenAddCreditModal}
+										onViewHistory={onOpenViewHistoryModal}
+										outstandingInvoices={outstandingInvoices}
+									/>
+								</Col>
+								<Col span={24} >
+									<Card bordered={false}>
+									<UninvoicedItems
+										uninvoicedItems={uninvoicedItems}
+										createInvoice={this.createInvoice}
+										showAddInvoiceItemModal={this.onAddItemButtonClick}
+										viewItem={onDropdownViewItem}
+										deleteItem={onDropdownDeleteItem}
+										saveItem={handleUpdateItem}
+										showLoader={this.state.showLoader}
+									/>
+
+									<InvoicesStats 
+										outstandingInvoices={outstandingInvoices}
+										patient={patient}
+										paidInvoices={paidInvoices}
+										showLoader={this.state.showLoader}
+									/>
+
+									 {/* <OutstandingInvoices
+										invoices={outstandingInvoices}
+										showLoader={this.state.showLoader}
+										patient={patient}
+									/> */}
+									{/* 
+									<PaidInvoices invoices={paidInvoices} showLoader={this.state.showLoader} />  */}
+									</Card>
+								</Col>
+								</Row>
+						</div>
+					</div>
+					{showAddCreditModal && (
+						<AddCreditModal
+							showModal={true}
+							onHide={handleClose}
+							confirmAddCredit={handleConfirmAddCredit}
+						/>
+					)}
+
+					{showViewHistoryModal && (
+						<AccountCreditHistoryModal
+							accountCreditHistory={accountCreditHistory}
+							showModal={true}
+							onHide={handleClose}
+						/>
+					)}
+
+					{isAddItemModalVisible && (
+						<NewModal
+							showModal={true}
+							onHide={handleClose}
+							createItem={this.createPatientRecordItem}
+							patientRecordItem={true}
+						/>
+					)}
+					{showViewModal &&
+					currentItem && (
+						<ViewModal
+							showModal={true}
+							invoiceItem={currentItem}
+							onHide={handleClose}
+							onDelete={onOpenDeleteModal}
+							saveItem={handleUpdateItem}
+							itemType={'Item'}
+						/>
+					)}
+					{showDeleteModal &&
+					currentItem && (
+						<DeleteItemModal
+							showModal={true}
+							invoiceItem={currentItem}
+							onHide={handleClose}
+							confirmDelete={handleDeleteItem}
+						/>
+					)}
+				</HasRolePermission>
+			</div>
+		);
+	}
+}
+
+const mapDispatchToProps = dispatch => ({
+	// fetchCatalogueItemsRequest,
+	fetchCatalogueItemsRequest() {
+		dispatch(fetchCatalogueItemsRequest());
+	},
+	toggleInvoiceAddItemModal() {
+		dispatch(toggleInvoiceAddItemModal());
+	},
+	// toggleInvoiceAddItemModal
+})
+
+export default connect(mapStateToProps, mapDispatchToProps)(InvoiceDashboard);

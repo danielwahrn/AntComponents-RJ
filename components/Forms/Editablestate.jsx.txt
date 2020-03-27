@@ -1,0 +1,29 @@
+import React from "react"
+
+export default class EdtiableState extends React.Component {
+  constructor(props) {
+    super(props)
+
+    this.state = {
+      editing: props.editing || false
+    }
+  }
+
+  onCancel = () => this.toggleState(false)
+  onEdit = () => this.toggleState(true)
+  onSave = () => this.toggleState(false)
+
+  toggleState = editing => this.setState({ editing })
+
+  render() {
+    const { children } = this.props
+    const { onCancel, onEdit, onSave } = this
+
+    return children({
+      ...this.state,
+      onCancel,
+      onEdit,
+      onSave,
+    })
+  }
+}

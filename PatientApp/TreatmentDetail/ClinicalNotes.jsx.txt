@@ -1,0 +1,145 @@
+import React from 'react';
+import styled from 'styled-components';
+import { Divider } from 'antd';
+
+import { LightBlueButton } from 'components/Zavy/Buttons';
+import EditableState from 'components/Forms/EditableState';
+
+import { WithConfirm } from 'servos/sweetAlerts';
+
+import TemplateActions from './TemplateActions';
+import TemplateForm from './TemplateForm';
+import TemplateSelection from './TemplateSelection';
+
+const Visible = styled.div`display: ${(props) => (props.visible ? 'block' : 'none')};`;
+
+const ActionsWrapper = styled.div`clear: both;`;
+
+export default class ClinicalNote extends React.Component {
+	render() {
+		const {
+			clinicalNote,
+			formRefs,
+			noteCategories,
+			expandNoteTemplate,
+			handleSelectTemplate,
+			handleDeleteNote,
+			handleLinkImage,
+			handleRemoveNote,
+			handleSaveNoteTemplates,
+			handleCancelNote,
+			isTemplateExpanded,
+			expandedTemplates,
+			newNoteTemplates,
+			noteFetchState
+		} = this.props;
+
+		const { id, clinicalNoteTemplates } = clinicalNote;
+
+		const displayClinicalNoteTemplates = clinicalNoteTemplates.length > 0;
+		const displayNewNoteTemplates = Object.keys(newNoteTemplates).length > 0;
+		const displayTemplateActions = displayClinicalNoteTemplates || displayNewNoteTemplates;
+		const displayTemplateSelection = !displayClinicalNoteTemplates && !displayNewNoteTemplates;
+
+		return (
+			<EditableState editing>
+				{({ editing, onCancel, onEdit, onSave }) => (
+					<div>
+						<Visible visible={editing}>
+							{displayClinicalNoteTemplates && (
+								<div>
+									{clinicalNoteTemplates.map((noteTemplate) => (
+										<React.Fragment>
+											<TemplateForm
+												isPersisted
+												ref={(elem) => (formRefs[noteTemplate.id] = elem)}
+												key={noteTemplate.id}
+												template={noteTemplate}
+												clinicalNoteId={id}
+												expanded={isTemplateExpanded(noteTemplate.id)}
+												onToggle={() => expandNoteTemplate(noteTemplate.id)}
+												onDelete={() => {
+													WithConfirm(
+														'Delete template?',
+														'This will remove the template from the note, and remove the note if this is the last template.  Are you sure?'
+													)
+														.then(() =>
+															handleDeleteNote({
+																clinicalNoteId: id,
+																noteTemplateId: noteTemplate.id
+															})
+														)
+														.catch(() => swal.noop);
+												}}
+											/>
+											<Divider dashed />
+										</React.Fragment>
+									))}
+								</div>
+							)}
+							{displayNewNoteTemplates && (
+								<div>
+									{Object.keys(newNoteTemplates).map((key) => (
+										<TemplateForm
+											ref={(elem) => (formRefs[key] = elem)}
+											key={key}
+											template={newNoteTemplates[key]}
+											clinicalNoteId={id}
+											expanded={isTemplateExpanded(key)}
+											onToggle={() => expandNoteTemplate(key)}
+											onDelete={() => handleRemoveNote({ key })}
+										/>
+									))}
+									<Divider dashed />
+								</div>
+							)}
+							{displayTemplateActions && (
+								<React.Fragment>
+									<TemplateActions
+										onAddTemplate={onCancel}
+										onAddImage={handleLinkImage}
+										onCancel={() => {
+											onCancel();
+											handleCancelNote();
+										}}
+										onSaveDraft={async () => {
+											handleSaveNoteTemplates({ id, final: false });
+										}}
+										onSaveFinal={async () => {
+											handleSaveNoteTemplates({ id, final: true });
+										}}
+									/>
+								</React.Fragment>
+							)}
+							{displayTemplateSelection && (
+								<TemplateSelection
+									onTemplateClick={(id) => {
+										handleSelectTemplate(id);
+										onEdit();
+									}}
+									categories={noteCategories}
+									noteFetchState={noteFetchState}
+								/>
+							)}
+						</Visible>
+						<Visible visible={!editing}>
+							<TemplateSelection
+								onTemplateClick={(id) => {
+									handleSelectTemplate(id);
+									onEdit();
+								}}
+								categories={noteCategories}
+								noteFetchState={noteFetchState}
+							/>
+							{Object.keys(newNoteTemplates).length > 0 && (
+								<LightBlueButton bsSize="sm" onClick={onEdit}>
+									Back to notes
+								</LightBlueButton>
+							)}
+						</Visible>
+					</div>
+				)}
+			</EditableState>
+		);
+	}
+}

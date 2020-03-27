@@ -1,0 +1,306 @@
+import React from 'react';
+import FetchUnavailablePracticeProfessionals from 'widgets/practice/calendar/fetchUnavailablePracticeProfessionals';
+import FetchAppointments from 'widgets/practice/calendar/fetchAppointments';
+
+import {Calendar, Badge} from 'antd';
+
+
+import FullCalendar from '@fullcalendar/react';
+import timeGrid from '@fullcalendar/resource-timegrid';
+import resourceDayGridPlugin from '@fullcalendar/resource-daygrid';
+import resourceTimelinePlugin from '@fullcalendar/resource-timeline';
+import listPlugin from '@fullcalendar/list';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import ReactTooltip from 'react-tooltip';
+
+import interactionPlugin from '@fullcalendar/interaction';
+import momentPlugin from '@fullcalendar/moment';
+
+import moment from 'moment';
+import humps from 'humps';
+import RolePermission from 'modules/utils/RolePermission';
+
+const height = window.innerHeight - 3 / 100 * window.innerHeight -80;
+
+const nowIndicator = true;
+const step = 15;
+
+const allDaySlot = false;
+const slotDuration = '00:15:00';
+const agendaEventMinHeight = 100;
+const buttonIcons = {
+	prev: 'left-single-arrow',
+	next: 'right-single-arrow'
+};
+
+const buttonText = {
+	today: 'Today',
+	day: 'Day',
+	week: 'Week',
+	resourceTimeline: 'Timeline',
+	listWeek: 'List',
+	dayGridMonth: 'Month'
+};
+
+const views = {
+	resourceTimeGridSevenDay: {
+		type: 'resourceTimeGrid',
+		duration: { days: 7 },
+		buttonText: 'Week'
+	},
+	resourceTimeGridDay: {
+		titleFormat: 'dddd MMMM D, YYYY {}', //https://github.com/fullcalendar/fullcalendar/issues/4686
+		titleRangeSeparator: ''
+	}
+};
+
+const refetchResourcesOnNavigate = true;
+const goToDateFormat = 'YYYY-MM-DD';
+
+export default class FC extends React.Component {
+	calendarComponentRef = React.createRef();
+
+	constructor(props) {
+		super(props);
+		this.state = {			
+			events: [],
+			modalIsOpen: false,
+			refetchEvents: props.refetchEvents
+		};
+	}
+
+	resetRefetch = () => {
+		this.props.resetRefetch();
+	};
+
+	componentDidMount() {
+		setInterval(this.refetch, 10000);
+	}
+
+	refetch = () => {
+		if (this.calendarComponentRef.current) {
+			let calendarApi = this.calendarComponentRef.current.getApi();
+			calendarApi.refetchEvents();
+			//calendarApi.fetchResources()
+		}
+	};
+
+	fetchResources(fetchInfo, successCallback, failureCallback) {
+		const start = moment(fetchInfo.start).format();
+		let resources = JSON.parse(JSON.stringify(gon.calendar.resources));
+		let hours = {};
+		FetchUnavailablePracticeProfessionals(gon.practice.id, {
+			day: start
+		})
+			.then(({ data }) => (hours = JSON.parse(data.professionals_hours)))
+			.then(() =>
+				resources.map(
+					(a) =>
+						(a.businessHours = {
+							startTime: hours[a.id].business_hours.start,
+							endTime: hours[a.id].business_hours.finish,
+							daysOfWeek: [ 0, 1, 2, 3, 4, 5, 6 ]
+						})
+				)
+			)
+			.then(() => {
+				console.log(resources);
+				successCallback(resources);
+			});
+	}
+
+	updateResource = (selectedPractitioners) => {
+		let calendarApi = this.calendarComponentRef.current.getApi();
+		const removeResource = this.props.availablePractitioners.filter(
+			({ id }) => !selectedPractitioners.includes(id.toString())
+		);
+
+		const addResource = this.props.availablePractitioners.filter(({ id }) =>
+			selectedPractitioners.includes(id.toString())
+		);
+
+		let resource;
+		removeResource.map(({ id }) => {
+			resource = calendarApi.getResourceById(id);
+			if (resource) {
+				resource.remove();
+			}
+		});
+
+		addResource.map(({ id }) => {
+			resource = this.props.availablePractitioners
+				.filter((x) => x.id === id)
+				.map((x) => calendarApi.addResource(x));
+		});
+	};
+
+	goToDate = (newDate) => {
+		let calendarApi = this.calendarComponentRef.current.getApi();
+		newDate = moment.isMoment(newDate) ? newDate.format() : moment(newDate, goToDateFormat).format();
+		if (moment(calendarApi.getDate()).format(goToDateFormat) != moment(newDate).format(goToDateFormat)) {
+			calendarApi.gotoDate(newDate);
+		}
+	};
+
+	handleEventPositioned(info) {
+		let { start, end, rendering, name } = info.event;
+		let toolTip = null;
+		if (!rendering) {
+			let { patientName, notes, appointmentReason } = info.event.extendedProps;
+			const { name } = appointmentReason;
+			start = moment(start).format('hh:mm A');
+			end = moment(end).format('hh:mm A');
+
+			notes = notes ? `<div><i class="far fa-pen-square" aria-hidden="true"></i>&nbsp;<i>${notes}</i></div>` : '';
+
+			toolTip = `<div><div><i class="far fa-user-alt" aria-hidden="true"></i>&nbsp;${patientName}</div>
+                  <div><i class="far fa-clock" aria-hidden="true"></i>&nbsp;${start} - ${end}</div>
+                  <div><i class="far fa-calendar-day" aria-hidden="true"></i>&nbsp;${name}</div>
+                  <br/>
+                  ${notes}
+                  </div>
+                  `;
+		} else {
+			toolTip = name;
+		}
+		if (toolTip) {
+			info.el.setAttribute('data-tip', toolTip);
+			ReactTooltip.rebuild();
+		}
+	}
+
+	eventRender(info){
+		let { stateIcon, stateText, reminderIcon, outstandingBalanceIcon, patientFirstVisitIcon } = info.event.extendedProps;
+		let icons = "<div style='font-size: 0.85em; display: inline-block'>"
+		if(stateIcon)
+			icons += `<i class='far fa-${stateIcon}'>&nbsp;</i>`
+		if(reminderIcon)
+			icons += `<i class='far fa-${reminderIcon}'>&nbsp;</i>`
+		if(outstandingBalanceIcon)
+			icons += `<i class='far fa-${outstandingBalanceIcon}'>&nbsp;</i>`
+		if(patientFirstVisitIcon)
+			icons += `<i class='far fa-${patientFirstVisitIcon}'>&nbsp;</i>`
+    icons += '</div>'
+
+		$(info.el).find("div.fc-content").prepend(icons)
+
+		if(stateText){
+			var title = info.el.getElementsByClassName('fc-title')[0]
+			if(title){
+				title.innerHTML = `${info.event.title} - ${stateText}`
+			}
+		}
+	}
+
+	componentWillReceiveProps(nextProps) {
+		// update Resource
+		if (nextProps.selectedPractitioners !== this.props.selectedPractitioners) {
+			this.updateResource(nextProps.selectedPractitioners);
+		}
+
+		// do refetch
+		if (nextProps.needsRefetch !== this.props.needsRefetch && nextProps.needsRefetch) {
+			this.refetch();
+			this.props.resetRefetch();
+		}
+
+		// go to const
+		if (nextProps.selectedDate !== this.props.selectedDate) {
+			this.goToDate(nextProps.selectedDate);
+		}
+	}
+
+	getEvents(fetchInfo, successCallback, failureCallback) {
+		let start = moment(fetchInfo.start);
+		let end = moment(fetchInfo.end);
+
+		const appointments = FetchAppointments(gon.practice.id, {
+			start: start.format(),
+			end: end.format()
+		});
+
+		appointments.then(({ data }) => {
+			let appointmentsWithBreaks = data.appointments;
+			let businessHoursWithBreaks = data.business_hours_with_breaks;
+			businessHoursWithBreaks.map((bh) => {
+				if (bh.breaks) {
+					bh.breaks.map((br) => {
+						appointmentsWithBreaks.push(br);
+					});
+				}
+			});		
+			successCallback(humps.camelizeKeys(appointmentsWithBreaks));
+		});
+	}
+
+	handleClick = (info) => {
+		console.log(info);
+		// if (!RolePermission('Appointment', 'create') || info.jsEvent.target.className.includes('fc-bgevent')) {
+		// 	info.dayEl.preventDefault();
+		// }
+		if (!RolePermission('Appointment', 'create')) {
+			info.dayEl.preventDefault();
+		}
+
+		this.props.onDayClick(info);
+	};
+
+	eventClick = (eventClickInfo) => {
+		const { event } = eventClickInfo;
+		const { rendering } = event;
+
+		if (!RolePermission('Appointment', 'update') || rendering == 'background') {
+			eventClickInfo.jsEvent.preventDefault();
+		} else {
+			this.props.onEventClick(eventClickInfo);
+		}
+	};
+
+	handleDatesRender = (info) => {
+		this.props.setSelectedDateToSmallCalendar(info.view.activeStart);
+	};
+
+	render() {
+		return (
+			<div>
+				<FullCalendar
+					header={{
+						left: 'today prev,next',
+						center: 'title',
+						right: 'resourceTimeGridDay,resourceTimeGridSevenDay,resourceTimeline,listWeek,dayGridMonth'
+					}}
+					slotDuration={slotDuration}
+					buttonIcons={buttonIcons}
+					allDaySlot={allDaySlot}
+					buttonText={buttonText}
+					views={views}
+					height={height}
+					nowIndicator={nowIndicator}
+					dateClick={this.handleClick}
+					ref={this.calendarComponentRef}
+					resources={this.fetchResources}
+					eventClick={this.eventClick}
+					events={this.getEvents}
+					agendaEventMinHeight={agendaEventMinHeight}
+					timeZone={'local'}
+					defaultView="resourceTimeGridDay"
+					plugins={[
+						timeGrid,
+						interactionPlugin,
+						resourceDayGridPlugin,
+						resourceTimelinePlugin,
+						listPlugin,
+						dayGridPlugin,
+						momentPlugin
+					]}
+					eventPositioned={this.handleEventPositioned}
+					eventRender={this.eventRender}
+					refetchResourcesOnNavigate={refetchResourcesOnNavigate}
+					schedulerLicenseKey="GPL-My-Project-Is-Open-Source"
+					datesRender={this.handleDatesRender}
+				/> 
+				
+			</div>
+		);
+	}
+}

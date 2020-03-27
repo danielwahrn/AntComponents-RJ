@@ -1,0 +1,254 @@
+import React from 'react';
+
+//import Modal from 'react-modal';
+
+import {Modal, Button} from 'antd'
+
+import BookNextAppointment from './BookNextAppointment';
+import CancelAppointment from './CancelAppointment';
+import EditAppointment from './EditAppointment';
+import FindAvailability from './FindAvailability';
+import NewAppointment from './NewAppointment';
+import AddNewPatient from './AddNewPatient';
+import HasRolePermission from 'modules/utils/HasRolePermission';
+const {confirm} = Modal;
+import humps from 'humps';
+import moment from 'moment';
+
+export default ({
+	onHide,
+	modalState,
+	updateModalState,
+	currentAppointment,
+	updateCurrentAppointment,
+	sendCurrentAppointment,
+	deleteCurrentAppointmentRequest,
+	setStateToEnableEdit,
+	enableAddNewPatient,
+	appointmentEditState,
+	onUpdateAppointment,
+	saveNotes,
+	updateNewPatient,
+	newPatient,
+	sendNewPatient,
+	isAddNewPatientEnabled,
+	setSelectedDateToSmallCalendar,
+	onBookAppointmentState,
+	fetchProposedVisitRequest,
+	proposedVisits,
+	visitBooking
+}) => {
+	const onSelectVacancy = (data) => {
+		updateCurrentAppointment({
+			name: 'appointmentReasonId',
+			value: data.currentAppointmentReason ? data.currentAppointmentReason.id : null
+		});
+
+		const startDate = moment(data.date).format('YYYY/MM/DD');
+		const startTime = moment(startDate + ' ' + data.startTime);
+		const endTime = moment(startDate + ' ' + data.endTime);
+
+		updateCurrentAppointment({
+			name: 'practitionerId',
+			value: data.practitionerId
+		});
+
+		updateCurrentAppointment({
+			name: 'practitionerName',
+			value: data.practitionerName
+		});
+
+		updateCurrentAppointment({
+			name: 'startTime',
+			value: startTime
+		});
+
+		updateCurrentAppointment({
+			name: 'startDate',
+			value: startDate
+		});
+
+		updateCurrentAppointment({
+			name: 'endTime',
+			value: endTime
+		});
+
+		const AVAILABLE_REASONS = humps.camelizeKeys(gon.appointment_reasons);
+		const firstReason = AVAILABLE_REASONS[0];
+		const appointmentReasonId = firstReason ? firstReason.id : null;
+
+		updateCurrentAppointment({
+			name: 'appointmentReasonId',
+			value: appointmentReasonId
+		});
+
+		updateModalState('newAppointment');
+	};
+
+	const onAddNewPatient = (values) => {
+		 console.log("newPatient", values)
+		 values.dob = moment(values.dob, "DD/MM/YYYY").format("DD/MM/YYYY")
+		sendNewPatient(values);
+	};
+
+	const onBookAppointment = () => {
+		let params = { ...currentAppointment };
+		const startDate = currentAppointment.startDate;
+
+		const newDate = moment.isMoment(startDate)
+			? startDate.format('YYYY/MM/DD')
+			: moment(startDate, 'DD/MM/YYYY').format('YYYY/MM/DD');
+		params.startTime = newDate + ' ' + currentAppointment.startTime.format('h:mm a');
+		params.endTime = newDate + ' ' + currentAppointment.endTime.format('h:mm a');
+
+		sendCurrentAppointment(params);
+		setSelectedDateToSmallCalendar(newDate);
+	};
+
+	const onCancel = () => updateModalState('findAvailability');
+
+	const onDelete = () => updateModalState('cancelAppointment');
+
+	const onConfirmCancel = (cancellationReason) =>
+		deleteCurrentAppointmentRequest(currentAppointment, cancellationReason);
+
+	const { patient } = currentAppointment;
+	const patientName = patient && `${patient.firstName} ${patient.lastName}`;
+	// var modalStyles = {overlay: {zIndex: 10}};
+	const modalWidth = modalState === 'findAvailability' ? '50%' : '30%';
+
+	const modalWidth2 = {
+		findAvailability: '50%',
+		newAppointment: '40%',
+		addNewPatient: '40%',
+		editAppointment: '45%'
+	}[modalState];
+
+	const modalStyles = {
+		content: {
+			overflow: 'initial',
+			top: '10%',
+			left: '30%',
+			right: 'auto',
+			bottom: 'auto',
+			padding: '0px',
+			width: modalWidth2
+		},
+		overlay: { zIndex: 10, backgroundColor: 'rgba(0,0,0,0.3)' }
+	};
+
+	return (
+		
+		
+		<div>
+			{modalState === 'findAvailability' && (
+				<Modal
+				onHide={onHide}
+				visible={!!modalState}
+				width={modalWidth2}
+				onCancel={onHide}
+				footer={null}
+			>
+				<FindAvailability onClose={onHide} onBookAppointment={onSelectVacancy} />
+				</ Modal>
+			)}
+
+			<HasRolePermission feature="Appointment" action="create">
+				{modalState === 'newAppointment' && (
+					<Modal
+					className="appointment-modal"
+					onHide={onHide}
+					visible={!!modalState}
+					width={modalWidth2}
+					onCancel={onHide}
+					footer={
+						[<Button key="back" onClick={onHide}>Cancel</Button>,
+						<Button key="submit" type="primary" loading={onBookAppointmentState} onClick={onBookAppointment}>Book</Button>]}
+				>
+					<NewAppointment
+						appointment={currentAppointment}
+						updateCurrentAppointment={updateCurrentAppointment}
+						onBookAppointment={onBookAppointment}
+						onClose={onHide}
+						onCancel={onCancel}
+						updateModalState={updateModalState}
+						updateNewPatient={updateNewPatient}
+						onAddNewPatient={onAddNewPatient}
+						onBookAppointmentState={onBookAppointmentState}
+						visitBooking={visitBooking}
+						
+					/>
+					</Modal>
+				)}
+			</HasRolePermission>
+			
+			<HasRolePermission feature="Patient" action="create">
+				{modalState === 'addNewPatient' && (
+					
+					<AddNewPatient
+						updateNewPatient={updateNewPatient}
+						onAddNewPatient={onAddNewPatient}
+						enableAddNewPatient={enableAddNewPatient}
+						updateModalState={updateModalState}
+						width={modalWidth2}
+					/>
+				 )}
+			</HasRolePermission>
+
+			<HasRolePermission feature="Appointment" action="update">
+				{modalState === 'editAppointment' && (
+					// currentAppointment.state !== "completed" && (
+					
+					<EditAppointment
+						appointment={currentAppointment}
+						onDelete={onDelete}
+						updateCurrentAppointment={updateCurrentAppointment}
+						setStateToEnableEdit={setStateToEnableEdit}
+						currentAppointment={currentAppointment}
+						appointmentEditState={appointmentEditState}
+						onUpdateAppointment={onUpdateAppointment}
+						saveNotes={saveNotes}
+						onClose={onHide}
+						fetchProposedVisitRequest={fetchProposedVisitRequest}
+						proposedVisits={proposedVisits}
+						width={modalWidth2}
+					/>
+				)
+				// )
+				}
+			</HasRolePermission>
+			
+			<HasRolePermission feature="Appointment" action="archive">
+				{modalState === 'cancelAppointment' && (
+					/* confirm({
+						title: "Are you sure you want to cancel?",
+						content: <CancelAppointment
+									patientName={patientName}
+									onBack={() => updateModalState('editAppointment')}
+									onConfirmCancel={onConfirmCancel}
+									onClose={onHide}
+								/>,
+						onCancel() {onHide},
+						onOk() {onConfirmCancel}
+					}) */
+					<Modal
+						title="Are you sure you want to cancel?"
+						visible={true}
+						width={modalWidth2}
+						//onCancel={updateModalState('editAppointment')}
+						onCancel={onHide}
+						onOk={onConfirmCancel}
+					>
+					<CancelAppointment
+							patientName={patientName}
+							onBack={() => updateModalState('editAppointment')}
+							onConfirmCancel={onConfirmCancel}
+							onClose={onHide}
+						/>
+					</Modal>
+				)}
+			</HasRolePermission>
+		
+		</div>
+	);
+};

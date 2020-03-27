@@ -1,0 +1,27 @@
+/* eslint react/jsx-filename-extension: "off" */
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+import { Provider } from 'react-redux';
+import { ThemeProvider } from 'styled-components';
+// import { ConnectedRouter } from 'connected-react-router';
+
+import { mainTheme } from 'themes';
+
+import CalendarApp from './CalendarApp';
+
+import createStore, { history } from './data/createStore';
+import rootReducer, { rootSaga } from './data';
+
+export default class Calendar extends React.Component {
+	render() {
+		const store = createStore({ rootReducer, rootSaga });
+		return (
+			<Provider store={store}>
+				<ThemeProvider theme={mainTheme}>
+					<CalendarApp />
+				</ThemeProvider>
+			</Provider>
+		);
+	}
+}

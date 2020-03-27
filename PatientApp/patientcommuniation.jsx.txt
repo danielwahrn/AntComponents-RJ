@@ -1,0 +1,36 @@
+/* eslint react/prefer-stateless-function: off */
+import React from 'react';
+import { connect } from 'react-redux';
+import { withRouter } from 'react-router-dom';
+import CommunicationNav from 'modules/CommunicationNav';
+
+import { PatientAlertTicker } from 'modules/PatientAlerts';
+
+class PatientCommunications extends React.Component {
+	render() {
+		if (this.props.location.pathname.match(RegExp(/\/communications/))) {
+			const { slug } = this.props.match.params
+			return (
+				<div className="l3-main-content">
+					<div className="app-full-content">
+						<PatientAlertTicker />
+						<div className="row">
+						  <div className="app-inner-content">
+							<div className="col-xs-12">
+									{/* <CommunicationNav rootPath={`/patients/${slug}/communications`} /> */}
+								{/* <p className="clearfix" /> */}
+								{this.props.children}
+							</div>
+							</div> 	
+						</div>
+					</div>
+				</div>
+			);
+		}
+		return null;
+	}
+}
+
+const mapStateToProps = () => ({});
+
+export default withRouter(connect(mapStateToProps, {})(PatientCommunications));

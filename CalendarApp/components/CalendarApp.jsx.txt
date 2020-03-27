@@ -1,0 +1,213 @@
+/* global gon */
+import React from 'react';
+import { compose, pure } from 'recompose';
+
+import styled from 'styled-components';
+import { Col, Row } from 'antd';
+import { Button, Icon, Badge, Typography, Menu } from 'antd';
+
+import StickySectionHeader from 'components/common/StickySectionHeader'
+import SmallCalendar from 'modules/SmallCalendar';
+
+import { formInputReducer } from 'components/Forms/FormHOCs';
+import { BlueButton, FaintGreyButton, OutlineButton } from 'components/Zavy/Buttons';
+
+import FullCalendar from './FullCalendar';
+// import CancellationList from "./CancellationList/CancellationList"
+import AppointmentModal from './AppointmentModal';
+import PractitionerList from './PractitionerList';
+
+const ButtonGroup = Button.Group;
+const { Paragraph} = Typography;
+
+const Container = styled(Row)`
+  @media (min-width: 768px) {
+    margin: 0;
+  }
+`;
+//height: 80vh;
+const Sidebar = styled(Col)`
+  ${({ theme }) =>
+		`
+      @media (min-width: 768px) {
+       
+      }
+    `}
+`;
+
+const SidebarSection = styled.div`
+	${({ theme, noLine }) => {
+		const borderBottom = noLine ? 'border-bottom: 0' : `1px solid ${theme.colors.border}`;
+		return `
+      @media (min-width: 768px) {
+        
+        padding-right: 17px;
+        padding-left: 17px;
+        font-size: 12px;
+       
+      }
+      margin-top:3px;
+      
+    `;
+	}};
+`;
+
+const DatePickerSection = styled.div`@media (min-width: 768px) {}`;
+
+// const Main = styled(Col)`
+//   @media (min-width: 768px) {
+//     overflow: hidden;
+//     padding-top: 15px;
+//     padding-left: 0;
+//     padding-right: 0;
+//   }
+// `;
+
+const CalendarWrapper = styled.div`width: 100%;`;
+
+const Left = styled.div`
+  float: left;
+  width: calc(100% - 250px)
+  border:1px solid red;  
+  background:#fff;
+`;
+
+const Right = styled.div`
+	width: calc(100% - 15em);
+	float: left;
+	@media only screen and (max-width: 960px) {
+		width: 98%;
+	}
+`;
+
+const ButtonContainer = styled.div`width: 92%;`;
+
+const toggleValueInArray = (array, value) =>
+	array.includes(value) ? array.filter((val) => val !== value) : [ ...array, value ];
+const initialState = {
+	selectedPractitioners: gon.calendar.resources.map((practitioner) => practitioner.id.toString())
+};
+
+const BorderNone = { border: 'none' };
+
+const BorderTopOnly = {
+	borderBottom: 'none',
+	borderRight: 'none',
+	borderLeft: 'none',
+	borderTop: '1px solid #D9E2E8'
+};
+const SmallCalendarStyle = { border: 'none', padding: '5px' };
+
+export default compose(
+	formInputReducer(initialState),
+	pure
+)(
+	({
+		modalShown,
+		modalState,
+		updateModalState,
+		currentAppointment,
+		updateCurrentAppointment,
+		sendCurrentAppointment,
+		deleteCurrentAppointmentRequest,
+		onHide,
+		setStateToEnableEdit,
+		enableAddNewPatient,
+		appointmentEditState,
+		onUpdateAppointment,
+		saveNotes,
+		setSelectedDateToSmallCalendar,
+		onFullCalendarDayClick,
+		onFullCalendarEventClick,
+		onFullCalendarEventDrag,
+		onFullCalendarViewRender,
+		form,
+		dispatch,
+		updateNewPatient,
+		newPatient,
+		sendNewPatient,
+		isAddNewPatientEnabled,
+		needsRefetch,
+		resetRefetch,
+		selectedDate,
+		onBookAppointmentState,
+		fetchProposedVisitRequest,
+		proposedVisits,
+		visitBooking,
+		resources
+	}) => (
+		<div>
+			
+			<div className="sidenav">
+				<div className="settings-left-menu">
+						<DatePickerSection>
+							<SmallCalendar data={new Date()} />
+						</DatePickerSection>
+					<SidebarSection>
+						<PractitionerList
+							selectedPractitioners={form.selectedPractitioners}
+							practitioners={resources}
+							onChange={({ target }) =>
+							{
+								console.log('checkbox test', form.selectedPractitioners)
+								dispatch({
+									type: 'UPDATE_INPUT',
+									name: 'selectedPractitioners',
+									value: toggleValueInArray(form.selectedPractitioners, target.value.toString())
+								})}}
+						/>
+					</SidebarSection>
+					<div noLine className="hide-on-mobile">
+						{/* <Button className="btn btn-link btn-light-blue" onClick={() => updateModalState('findAvailability')}>
+							<i className="far fa-search" /> &nbsp;Find Availability
+						</Button> */}
+						<Button icon="search" type="dashed" size="large" className="findbtn" onClick={() => updateModalState('findAvailability')}>Search Availability</Button>
+					</div>
+				</div>
+			</div>
+			<div className="main-content">
+				<div className="row">
+					<div className="col-md-12">
+						<FullCalendar
+							availablePractitioners={gon.calendar.resources}
+							selectedPractitioners={form.selectedPractitioners}
+							onDayClick={onFullCalendarDayClick}
+							onEventClick={onFullCalendarEventClick}
+							onEventDrag={onFullCalendarEventDrag}
+							onViewRender={onFullCalendarViewRender}
+							needsRefetch={needsRefetch}
+							resetRefetch={resetRefetch}
+							selectedDate={selectedDate}
+							updateModalState={updateModalState}
+							setSelectedDateToSmallCalendar={setSelectedDateToSmallCalendar}
+						/>
+					</div>
+				</div>
+				<AppointmentModal
+					modalState={modalState}
+					updateModalState={updateModalState}
+					onHide={onHide}
+					show={modalShown}
+					currentAppointment={currentAppointment}
+					updateCurrentAppointment={updateCurrentAppointment}
+					sendCurrentAppointment={sendCurrentAppointment}
+					deleteCurrentAppointmentRequest={deleteCurrentAppointmentRequest}
+					setStateToEnableEdit={setStateToEnableEdit}
+					enableAddNewPatient={enableAddNewPatient}
+					appointmentEditState={appointmentEditState}
+					onUpdateAppointment={onUpdateAppointment}
+					saveNotes={saveNotes}
+					updateNewPatient={updateNewPatient}
+					newPatient={newPatient}
+					sendNewPatient={sendNewPatient}
+					isAddNewPatientEnabled={isAddNewPatientEnabled}
+					setSelectedDateToSmallCalendar={setSelectedDateToSmallCalendar}
+					onBookAppointmentState={onBookAppointmentState}
+					fetchProposedVisitRequest={fetchProposedVisitRequest}
+					proposedVisits={proposedVisits}
+					visitBooking={visitBooking}
+				/>
+			</div>
+		</div>
+	)
+);

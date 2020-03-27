@@ -1,0 +1,204 @@
+import { combineReducers } from "redux";
+import createReducer from "components/utils/createReducer";
+
+import * as types from "./constants";
+
+import {
+  RECEIVE_PROFILE,
+  SEARCH_FAMILY_MEMBERS_REQUEST,
+  FETCH_APPOINTMENT_SUMMARY_SUCCESS,
+  SEARCH_FAMILY_MEMBERS_SUCCESS,
+  DELETE_FAMILY_MEMBER_REQUEST,
+  DELETE_FAMILY_MEMBER_SUCCESS,
+  DELETE_FAMILY_MEMBER_FAILURE,
+  ENABLE_EDIT_PATIENT_PROFILE,
+  HIDE_EDIT_PATIENT_PROFILE,
+  FETCH_FAMILY_MEMBERS_SUCCESS,
+  OPEN_ADD_FAMILY_MODAL,
+  ADD_FAMILY_MEMBER_SUCCESS,
+  ADD_FAMILY_MEMBER_FAILURE,
+  HIDE_ADD_FAMILY_MODAL,
+  SET_FAMILY_MEMBER,
+  CLEAR_FAMILY_MEMBER
+} from "./constants";
+
+const overview = (
+  state = {
+    html: "",
+    isLoaded: true
+  },
+  action
+) => {
+  switch (action.type) {
+    case RECEIVE_PROFILE:
+    console.log(action)
+      return {
+        ...state,
+        isLoaded: true,
+        ...action.profile
+      };
+    default:
+      return state;
+  }
+};
+
+// const familyMembers = createReducer(false)({
+//   [SEARCH_FAMILY_MEMBERS_REQUEST]: () => 10,
+//   [SEARCH_FAMILY_MEMBERS_SUCCESS]: () => 20
+// });
+
+const patientRecord = createReducer(null)({
+  [RECEIVE_PROFILE]: (state, { response }) => response
+});
+
+
+// const practice = createReducer(false)({
+//   [RECEIVE_PROFILE]: (state, { patientRecord }) => patientRecord.practice
+// });
+
+const emergencyContact = createReducer(false)({
+  [types.FETCH_EMERGENCY_CONTACT_SUCCESS]: (state, { response }) => response
+});
+
+const healthFund = createReducer(false)({
+  [RECEIVE_PROFILE]: (state, { overview }) => ''
+});
+
+
+const appointmentSummary = createReducer({})({
+  [FETCH_APPOINTMENT_SUMMARY_SUCCESS]: (state, { response }) => response
+});
+
+
+
+const relatives = createReducer(false)({
+  [FETCH_FAMILY_MEMBERS_SUCCESS]: (state, { response }) => response
+});
+
+const contactPreferences = createReducer(false)({
+  [RECEIVE_PROFILE]: (state, { overview }) => ''
+});
+
+const lastExam = createReducer(false)({
+  [RECEIVE_PROFILE]: (state, { overview }) => ''
+});
+
+const lastXray = createReducer(false)({
+  [RECEIVE_PROFILE]: (state, { overview }) => ''
+});
+
+const appointments = createReducer(false)({
+  [RECEIVE_PROFILE]: (state, { overview }) => ''
+});
+
+const recentActivity = createReducer(false)({
+  [RECEIVE_PROFILE]: (state, { overview }) => ''
+});
+
+const searchFamilyMembersResult = createReducer([])({
+  [SEARCH_FAMILY_MEMBERS_SUCCESS]: (state, { response }) => response.results,
+  [ADD_FAMILY_MEMBER_SUCCESS]: () => ([]),
+  [HIDE_ADD_FAMILY_MODAL]: () => ([]),
+  [CLEAR_FAMILY_MEMBER]: () => ([])
+});
+
+const deleteFamilyMemberState = createReducer(false)({
+  [DELETE_FAMILY_MEMBER_REQUEST]: () => true,
+  [DELETE_FAMILY_MEMBER_SUCCESS]: () => false,
+  [DELETE_FAMILY_MEMBER_FAILURE]: () => false
+});
+
+const editPatientProfileState = createReducer(false)({
+  [ENABLE_EDIT_PATIENT_PROFILE]: () => true,
+  [HIDE_EDIT_PATIENT_PROFILE]: () => false,
+  [types.UPDATE_PATIENT_SUCCESS]:() => false,
+});
+
+
+
+const addFamilyModalState = createReducer(false)({
+  [OPEN_ADD_FAMILY_MODAL]: () => true,
+  [ADD_FAMILY_MEMBER_SUCCESS]: () => false,
+  [ADD_FAMILY_MEMBER_FAILURE]: () => false,
+  [HIDE_ADD_FAMILY_MODAL]: () => false,
+});
+
+
+
+const selectedFamilyMemberId = createReducer(false)({
+  [ADD_FAMILY_MEMBER_SUCCESS]: () => false,
+  [SET_FAMILY_MEMBER]: (state, { familyMemberId }) => familyMemberId,
+  [HIDE_ADD_FAMILY_MODAL]: () => false,
+  [CLEAR_FAMILY_MEMBER]: () => false,
+});
+
+
+
+
+const communicationSettings = createReducer(null)({
+  [types.FETCH_COMMUNICATION_SETTINGS_SUCCESS]: (state, { response }) => response
+
+});
+
+
+export const getSearchFamilyMembersResult = overview =>
+  overview.searchFamilyMembersResult;
+export const getDeleteFamilyMemberState = overview =>
+  overview.deleteFamilyMemberState;
+
+export const getAddFamilyModalState = overview => {
+  return overview.addFamilyModalState;
+}
+
+export const getSelectedFamilyMemberId = overview => {
+  return overview.selectedFamilyMemberId;
+}
+  
+
+  export const getEditPatientProfileState = state =>
+  state.overview.editPatientProfileState;
+
+export const getPatientProfile = overview =>{
+  if (overview.patientRecord){    
+    return overview.patientRecord.patient
+  }  
+}
+
+
+export const getPractice = overview => {
+  if (overview.patientRecord) {
+    return overview.patientRecord.practice
+  }
+}
+  
+
+
+export const getAppointmentSummary = overview => {
+  if (overview.appointmentSummary) {
+    return overview.appointmentSummary
+  }
+}
+
+export const getEmergencyContact = overview =>
+  overview.emergencyContact;
+ 
+
+
+export default combineReducers({    
+  patientRecord,
+  emergencyContact,
+  healthFund,  
+  appointmentSummary,
+  relatives,
+  contactPreferences,
+  appointments,
+  recentActivity,
+  lastExam,
+  lastXray,
+  searchFamilyMembersResult,
+  deleteFamilyMemberState,
+  editPatientProfileState,
+  communicationSettings,
+  addFamilyModalState,
+  selectedFamilyMemberId
+});

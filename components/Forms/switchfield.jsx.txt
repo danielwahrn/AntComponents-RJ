@@ -1,0 +1,47 @@
+import React, { Component } from 'react';
+import {Switch} from 'antd'
+const SwitchField = ({
+  input,
+  label,
+  isRequired,
+  isPreferred,
+  labelCol,
+  controlCol,
+  customMessage,
+  type,
+  meta: { touched, error, warning }
+}) => {
+  const isError = touched && error;
+  labelCol = labelCol ? labelCol : 3;
+  controlCol = controlCol ? controlCol : 5;
+  customMessage = customMessage ? customMessage : 'This field is required.';
+  const { value } = input
+console.log('switch', input)
+  return (
+    <div className={isError ? 'form-group has-error' : 'form-group'}>
+      <label className='slider-label'>
+        {label} {isRequired && <span className="required-field">*</span>}
+      </label>
+      <label className={`col-sm-${controlCol} switch`}>
+        {/* <input {...input} className="form-control" placeholder={label} type={type} /> */}
+        <Switch 
+          {...input}
+          // checked={isPreferred ? true : false}
+        />
+        {/* <span className='slider round'></span> */}
+        {isError && <span className="error">{error}</span>}
+      </label>
+      {/* {isPreferred && (
+        <div className="col-sm-1 field-icon">
+          <i
+            data-tip="Marked as preferred contact method"
+            className="far fa-check-circle"
+            aria-hidden="true"
+          />
+        </div>
+      )} */}
+    </div>
+  );
+};
+
+export default SwitchField;

@@ -1,0 +1,112 @@
+/* eslint react/jsx-filename-extension: "off" */
+/* global gon */
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+import { Provider } from 'react-redux';
+import { Route } from 'react-router';
+import { ConnectedRouter } from 'react-router-redux';
+
+import { ThemeProvider } from 'styled-components';
+import { mainTheme } from 'themes';
+
+import { ClinicalNoteList } from 'modules/ClinicalNote';
+import { PatientOverview } from 'modules/PatientOverview';
+import { TreatmentList } from 'modules/TreatmentList';
+import { PatientAppointmentList } from 'modules/PatientAppointmentList';
+import { RecallList } from 'modules/RecallList';
+import { PortalPanel } from 'modules/PortalPanel';
+import { LetterPanel } from 'modules/LetterPanel';
+import { EmailPanel } from 'modules/EmailPanel';
+import { SMSPanel } from 'modules/SMSPanel';
+
+import { Vivian } from 'modules/Vivian';
+
+import { PatientCommunications } from 'modules/PatientCommunications';
+import TreatmentDetails from './TreatmentDetails';
+
+import InvoiceDashboard from './Invoices/InvoiceDashboard';
+
+import InvoiceDetail from './Invoices/InvoiceDetail';
+
+import Documents from './Documents/Documents';
+
+import PatientApp from './PatientApp';
+import RootSaga from './sagas';
+
+//import configureStore, { history } from "./store"
+import configureStore from './store';
+import createHistory from 'history/createBrowserHistory';
+
+class Patient extends React.Component {
+	render() {
+		const { slug } = this.props.match.params;
+		const history = createHistory({ basename: `/practice/${gon.practice.id}/home/patients/${slug}` });
+		const store = configureStore({}, slug);
+
+		store.runSaga(RootSaga);
+
+		// const patientIds = [ gon.record ];
+
+		const disableSelectPatients = true;
+		return (
+			<Provider store={store}>
+				<div>
+					<ThemeProvider theme={mainTheme}>
+						<PatientApp slug={slug}>
+							<Route exact path="/patients/:slug/profile" component={PatientOverview} />
+							<Route exact path="/patients/:slug/treatments" component={TreatmentList} />
+							<Route path="/patients/:slug/treatments/:slug" component={TreatmentDetails} />
+							<Route path="/patients/:slug/appointments" component={PatientAppointmentList} />
+							<Route exact path="/patients/:slug/invoices" component={InvoiceDashboard} />
+							<Route path="/patients/:slug/invoices/:slug" component={InvoiceDetail} />
+							<Route path="/patients/:slug/recalls" component={RecallList} />
+							<Route path="/patients/:slug/documents" component={Documents} />
+							<Route path="/vivian" component={Vivian} />
+							<PatientCommunications>
+								<Route
+									path="/patients/:slug/communications/portals"
+									render={() => (
+										<PortalPanel
+											fetchPatientRecord={true}
+											disableSelectPatients={disableSelectPatients}
+										/>
+									)}
+								/>
+								<Route
+									path="/patients/:slug/communications/attachments/:action?"
+									render={() => (
+										<LetterPanel
+											fetchPatientRecord={true}
+											disableSelectPatients={disableSelectPatients}
+										/>
+									)}
+								/>
+								<Route
+									path="/patients/:slug/communications/emails/:action?"
+									render={() => (
+										<EmailPanel
+											fetchPatientRecord={true}
+											disableSelectPatients={disableSelectPatients}
+										/>
+									)}
+								/>
+								<Route
+									path="/patients/:slug/communications/messages/:action?"
+									render={() => (
+										<SMSPanel
+											fetchPatientRecord={true}
+											disableSelectPatients={disableSelectPatients}
+										/>
+									)}
+								/>
+							</PatientCommunications>
+						</PatientApp>
+					</ThemeProvider>
+				</div>
+			</Provider>
+		);
+	}
+}
+// defaultPatientIds={patientIds} disableSelectPatients={disableSelectPatients}
+export default Patient;
